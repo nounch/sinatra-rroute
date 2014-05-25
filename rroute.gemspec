@@ -1,13 +1,13 @@
 # coding: utf-8
 lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require 'rroute/version'
+require 'sinatra/rroute/version'
 
 Gem::Specification.new do |spec|
   spec.name          = "sinatra-rroute"
-  spec.version       = Rroute::VERSION
+  spec.version       = Sinatra::Rroute::VERSION
   spec.authors       = ["nounch"]
-  spec.email         = [""]
+  spec.email         = ["nounch@outlook.com"]
   spec.summary       =
     "Rails-style routes with names, namespaces and `path' helper."
   spec.description   = <<-DESCRIPTION

@@ -1,10 +1,9 @@
 module Sinatra
-  module Paths
+  module Rroute
     private
-
     def self.registered(app)
       app.set :app_paths, {}
-      app.set :app_prefixes, ''
+      app.set :app_prefixes, []
       app.helpers do
         # @!visibility public
         #
@@ -30,8 +29,10 @@ module Sinatra
         def path(name, *options)
           keywords = options[0]
           # Take the last string as path mask.
-          path = settings.app_paths[name.to_sym][:mask] ||
-            settings.app_paths[name.to_sym][:regex]
+          # (Important: Make a duplicate. Do not reference the original
+          # mask/regex in `settings.app_paths'!)
+          path = settings.app_paths[name.to_sym][:mask].dup ||
+            settings.app_paths[name.to_sym][:regex].dup
           if keywords != nil
             keywords.each do |keyword, value|
               path.gsub! /:#{keyword.to_s}/, value.to_s
@@ -55,26 +56,26 @@ module Sinatra
     #
     # @example
     #
-    #   paths({:route=>
-    #           {:http_method=>:get,
-    #             :regex=>"/r*o*u*t*e*/:name/?",
-    #             :controller=>nil,
-    #             :mask=>"/route/:name"},
-    #           :color=>
-    #           {:http_method=>:get,
-    #             :regex=>"/api/new/c*o*l*o*r*/:name/:value/?",
-    #             :controller=>:show_color,
-    #             :mask=>"/api/new/color/:name/:value"},
-    #           :blue=>
-    #           {:http_method=>:post,
-    #             :regex=>"/important/api/b*l*u*e*/:name/:value/?",
-    #             :controller=>:post_blue,
-    #             :mask=>"/important/api/blue/:name/:value"},
-    #           :something=>
-    #           {:http_method=>:get,
-    #             :regex=>"/s*o*m*e*t*h*i*n*g*/:name/:value/?",
-    #             :controller=>:api_something,
-    #             :mask=>"/something/:name/:value"}})
+    #   paths({:route =>
+    #           {:http_method =>:get,
+    #             :regex =>"/route/:name/?",
+    #             :controller =>nil,
+    #             :mask =>"/route/:name"},
+    #           :color =>
+    #           {:http_method =>:get,
+    #             :regex =>"/api/new/color/:name/:value/?",
+    #             :controller =>:show_color,
+    #             :mask =>"/api/new/color/:name/:value"},
+    #           :blue =>
+    #           {:http_method =>:post,
+    #             :regex =>"/important/api/blue/:name/:value/?",
+    #             :controller =>:post_blue,
+    #             :mask =>"/important/api/blue/:name/:value"},
+    #           :something =>
+    #           {:http_method =>:get,
+    #             :regex =>"/something/:name/:value/?",
+    #             :controller =>:api_something,
+    #             :mask =>"/something/:name/:value"}})
     #
     # @return [nil] Nothing.
     def paths(paths)
@@ -103,20 +104,24 @@ module Sinatra
     # @return [nil] Nothing.
     def ppath(mapping, http_method, *options)
       options = options[0]
-      defined?(settings.app_prefixes) != nil ? prefix =
-        settings.app_prefixes : prefix = ''
-      individual_prefix = options[:prefix] || ''
+      prefix = settings.app_prefixes.empty? ? '' :
+        settings.app_prefixes.join
       controller = nil
       if mapping.values[0] != nil
         controller = mapping.values[0].to_sym
       end
+      if mapping.keys[0].class == Regexp
+        mapping_regex = mapping.keys[0]
+      else
+        mapping_regex = Regexp.new(mapping.keys[0])
+      end
       settings.app_paths.merge!({options[:as].to_sym => {
                                     :http_method => http_method || :get,
-                                    :regex => individual_prefix + prefix +
-                                    mapping.keys[0] || '',
+                                    :regex => %r{#{prefix}\
+#{mapping_regex.source}} || Regexp.new(''),
                                     :controller => controller,
-                                    :mask => individual_prefix + prefix +
-                                    options[:mask]}}) || ''
+                                    :mask => prefix + options[:mask]}}) ||
+        ''
       generate_paths
     end
 
@@ -367,10 +372,18 @@ module Sinatra
       options[:as] = name
       options[:controller] = nil
       ppath({regex => nil}, nil, options)
-      regex
+
+      # Prepend the prefix to the returned RegExp.
+      mapping_regex = regex == Regexp ? regex : Regexp.new(regex)
+      prefix = settings.app_prefixes.empty? ? '' :
+        settings.app_prefixes.join
+      output = %r{#{prefix}#{mapping_regex.source}}.source ||
+        Regexp.new('')
+      # Return the right type of object depending on the input.
+      regex.class == Regexp ? Regexp.new(output) : output
     end
 
-    # @!visibility private
+    # @!visibility public
     #
     # Generate all route mappings from the paths in `settings.app_paths'.
     #
@@ -378,6 +391,13 @@ module Sinatra
     def generate_paths
       settings.app_paths.each do |name, value|
         if value[:controller] != nil
+          # Paths merged using `paths' should be allowed to to be specified
+          # as strings. So they have to be converted here.
+          if value[:regex].class != Regexp
+            value[:regex] = Regexp.new(value[:regex])
+          end
+          # Adapt the RegEx representation.
+          value[:regex] = value[:regex].source
           send(value[:http_method],
                value[:regex]) { send value[:controller] }
         end
@@ -404,8 +424,8 @@ module Sinatra
     def nnamespace(prefix, &block)
       settings.app_prefixes << prefix
       block.call
-      settings.app_prefixes = ''
+      settings.app_prefixes.pop
     end
   end
-  register Paths
+  register Rroute
 end

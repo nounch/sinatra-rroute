@@ -1,10 +1,12 @@
 # Sinatra-rroute
 
-Sinatra-rroute provides Rails-like routes for Sinatra. A route is has a name, is mapped to a controller-like method and has a mask to be used by the provided `path' helper function. The `path' helper takes the name of a route, a set of keyword-value mappings, applies them to the mask and gives back the route with each keyword replaced by the associated value. Routes can also be namespaced. Namespaces can be nested. There can be multiple namespaces per app.
+Sinatra-rroute provides Rails-like routes for Sinatra. Using one of the `gget`/`ppost`/`ddelete`/... methods, a route is assigned a name, is mapped to a controller-like method and has a mask to be used by the provided `path` helper function. The `path` helper takes the name of a route, a set of keyword-value mappings, applies them to the mask and gives back the route with each keyword replaced by the associated value.
+
+Routes can also be namespaced. Namespaces can be nested. There can be multiple namespaces per app.
 
 ## Setup
 
-1. Include `sinatra-rroute' in your Gemfile:
+1. Include `sinatra-rroute` in your Gemfile:
 
         gem 'sinatra-rroute'
 
@@ -32,7 +34,7 @@ Mapping routes to controller-like methods works by calling one of the sinatra-rr
 
 The above examples will map GET requests for routes matching the RegEx `'/[uU]ser/:name/:age/?'` to the function `user_info` and POST requests to the route matching the RegEx `'/[uU]ser/new/:name/:age/?'` to the function :create_user. The first route can be referenced as `user`, the second one as `new_user`.
 
-Here are all the supported mapping methods and their associated HTTP method (all of them have the same signature described above):
+Here are all the supported mapping methods and their associated HTTP methods (all of them have the same signature, e.g. `gget('/route/regex/?' => :controller_method, :as => :route_name, :mask => '/route/mask/')`):
 
 
         | Rroute Method | HTTP Method |
@@ -49,18 +51,18 @@ Here are all the supported mapping methods and their associated HTTP method (all
         | ttrace        | TRACE       |
         | cconnect      | CONNECT     |
 
-The value and validity of some of those HTTP methods is debatable, but it is nice to have them, nonetheless, in case you might need them one day.
+*The validity of some of those HTTP methods may be debatable, but it is nice to have them, nonetheless, in case you might need them one day.*
 
 If you do not want to map routes to methods, but still give them names and masks, you can use the `mmap` function in combination with Sinatra's built-in `get`/`post`/`delete`/... functions:
 
         # Signature: mmap(regex, mask, name)
-        get mmap('/u*s*e*r*/:name/?', '/user/:name/', :user_info) do
+        get mmap('/user/:name/?', '/user/:name/', :user_info) do
           # ...
         end
 
 ### Namespacing
 
-Sinatra-rroute comes with a `nnamespaces` which takes the name of namespace and a block. Each route specified using of the sinatra-rroute mapping functions (`gget`/`ppost`/`ddelete`/, also `mmap`) inside the block will be prefixed by the specified prefix. Sinatra's built-in `get`/`post`/`delete`/... functions used within a namespace block are *not* affected by the namespacing. Namespaces can be nested. Prefixes do have to specify leading and/or trailing slashes explicitely!
+Sinatra-rroute comes with a `nnamespace` method which takes the name of a namespace and a block. Each route specified using one of the sinatra-rroute mapping functions (`gget`/`ppost`/`ddelete`/, also `mmap`) inside the block will be prefixed by the specified namespace prefix. Sinatra's built-in `get`/`post`/`delete`/... functions can be used within a namespace block, but are *not* affected by the namespacing. Namespaces can be nested. *Prefixes do have to specify leading and/or trailing slashes explicitely!*
 
 Here is an example:
 
@@ -102,23 +104,22 @@ The helper can be used in your view files as well as in your controller/model/ap
 
 The full hash of all route-method mappings is attached to your Sinatra app's `settings` object available through the `settings.app_paths` variable.
 
-*Note*: The full list of all of all routes is only available after the last call of one of the sinatra-rroute mapping methods, of course.
+*Note*: The full list of all routes is only available after the last call of one of the sinatra-rroute mapping methods, of course.
 
-*Note*: When mixing sinatra-rroute mapping functions (`gget`/`ppost`/`delete`/`mmap`/...) and Sinatra's built-in `get`/`post`/`delete`/... the routes defined using the Sinatra built-ins will *not* show up in `settings.app_paths`!
+*Note*: When mixing sinatra-rroute mapping methods (`gget`/`ppost`/`delete`/`mmap`/...) and Sinatra's built-in `get`/`post`/`delete`/... the routes defined using the Sinatra built-ins will *not* show up in `settings.app_paths`!
 
 ## Mixing With Sinatra and Other Extensions
 
 Sinatra's built-in `get`/`post`/`delete`/... functions as well as other route-related extensions do work fine in combination with sinatra-rroute as long as they do not
 
-- clash with rroute's function names,
+- clash with sinatra-rroute's function names,
 - fiddle with the `settings.app_paths` variable of your Sinatra app or
 - redefine/overload Sinatra's built-in `get`/`post`/`delete` functions without letting sinatra-rroute know.
 
-## *What about the weird names?*
+## *What about the weird method names?*
 
 The names are
 
 - concise (as short as possible),
 - consistent (same name generatiion scheme) and
 - unobtrusive (they do not interfere with or overload Sinatra's and Rack's built-in routing methods, they also do not interfere with other Sinatra extensions).
-
