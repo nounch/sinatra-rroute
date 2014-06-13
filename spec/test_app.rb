@@ -190,4 +190,19 @@ class TestApp < Sinatra::Base
   get mmap('/generate/paths/?', 'generate/paths/', :build_paths) do
     'Paths have been generated.'
   end
+
+  # Nested controller references
+
+  require 'controllers/init'
+
+  # Instance method
+  gget '/nested/controller/references' =>
+    'TestApp::Nested::Controller::Reference#controller', :as =>
+    :nested_controller_reference, :mask => '/nested/controller/references'
+
+  # Class method
+  gget '/nested/controller/references/another/one' =>
+    'TestApp::Nested::Controller::Reference::another_controller', :as =>
+    :another_nested_controller_reference, :mask =>
+    '/nested/controller/references/another/one'
 end

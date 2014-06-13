@@ -80,6 +80,26 @@ request" do
     end
   end
 
+  describe "#gget (3)" do
+    it "successfully dispatches a GET request and defines a route mask
+(using a nested controller reference - instance method)" do
+      get '/nested/controller/references'
+      expect(last_response).to be_ok
+      expect(last_response.body)
+        .to include('95475e78-f2c9-11e3-ba43-60eb69544a6d')
+    end
+  end
+
+  describe "#gget (4)" do
+    it "successfully dispatches a GET request and defines a route mask
+(using a nested controller reference - class method)" do
+      get '/nested/controller/references/another/one'
+      expect(last_response).to be_ok
+      expect(last_response.body)
+        .to include('98985e7e-f2c9-11e3-b9d9-60eb69544a6d')
+    end
+  end
+
   describe "#ppost" do
     it "successfully dispatches a POST request and defines a route mask" do
       post "/user/new/#{@user[:name]}/#{@user[:age]}/"

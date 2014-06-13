@@ -40,6 +40,51 @@ module Sinatra
           end
           path
         end
+
+        # @visibility private
+        #
+        # Take the string representation of a nested instance method or of
+        # a class method and call the method.
+        #
+        # Notes:
+        #
+        # - The name is chosen to be long and unique enough to not be
+        #   accidentially overwritten
+        # - Arguments are not supported as the methods to use this function
+        #   on are controllers.
+        # - Unlike the `:to' option of Rails' `match' method (used by
+        #   `get'/`post'/...), strings are case-sensitive.
+        # - Unlike the `:to' option of Rails' `match' method
+        #   methods can be arbitrarily deeply nested.
+        #
+        # @param [String] string String representation of a method
+        #
+        # @example
+        #
+        #   # Instance method
+        #   rroute_call_nested_controller_from_string(
+        #     'Very::Deeply::Nested#controller')
+        #
+        #   # Class method
+        #   rroute_call_nested_controller_from_string(
+        #     'Very::Deeply::Nested::controller')
+        #
+        # @return [nil] Nothing.
+        def rroute_call_nested_controller_from_string(string)
+          method_sep = '#'
+          nesting_sep = '::'
+          if string =~ %r{#{method_sep}}
+            tokens = string.split(method_sep)
+            const = Kernel.const_get(tokens[0])
+            method = tokens[-1]
+            const.new.send(method.to_sym)
+          else
+            tokens = string.split(nesting_sep)
+            const = Kernel.const_get(tokens[0..-2].join(nesting_sep))
+            method = tokens[-1]
+            const.send(method.to_sym)
+          end
+        end
       end
     end
 
@@ -108,7 +153,8 @@ module Sinatra
         settings.app_prefixes.join
       controller = nil
       if mapping.values[0] != nil
-        controller = mapping.values[0].to_sym
+        # controller = mapping.values[0].to_sym
+        controller = mapping.values[0]
       end
       if mapping.keys[0].class == Regexp
         mapping_regex = mapping.keys[0]
@@ -399,7 +445,14 @@ module Sinatra
           # Adapt the RegEx representation.
           value[:regex] = value[:regex].source
           send(value[:http_method],
-               value[:regex]) { send value[:controller] }
+               value[:regex]) do
+            if value[:controller].class == Symbol
+              send value[:controller]
+            else
+              rroute_call_nested_controller_from_string(value[:controller]
+                                                          .to_s)
+            end
+          end
         end
       end
     end

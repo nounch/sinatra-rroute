@@ -60,6 +60,40 @@ If you do not want to map routes to methods, but still give them names and masks
           # ...
         end
 
+**Referencing controllers...**
+
+...works in two ways. Either they are referenced using
+symbols for simple class/module level or global controllers or they are
+referenced using strings representing nested controllers similar to the
+`:to` option of Rails' `get`/`post`/... routing methods:
+
+        # Symbol reference
+        gget '/[uU]ser/:name/:age/?' => :user_info, :as =>
+          :user, :mask => '/user/:name/:age/'
+        
+        # String reference to nested controller (instance method)
+        gget '/[uU]ser/:name/:age/?' => 'Very::Deeply::Nested#controller',
+          :as => :user, :mask => '/user/:name/:age/'
+
+        # String reference to nested controller (class method)
+        gget '/[uU]ser/:name/:age/?' => 'Very::Deeply::Nested::controller',
+          :as => :user, :mask => '/user/:name/:age/'
+
+String references can point to either instance methods or class methods.
+For instance methods, the class is automatically instanciated and the
+method is called on this anonymous instance. So arguments can not be
+supplied for this instance (this would arguably be bad controller design
+anyway). Unlike with Rails,
+
+- case is significant in string references
+  (`'UpperCase::DeeplyNested::controller'`), but
+- strings can reference arbitrarily deeply nested controllers
+  (`'One::Two::Three::Four::Five::Six::Seven#controller'`).
+
+Have in mind, that for sinatra-rroute to be able to reach controllers,
+the controllers already have to be defined, i.e. modules/classes have to be
+required *before* being referenced in a `gget`/`ppost`/`mmap` call.
+
 ### Namespacing
 
 Sinatra-rroute comes with a `nnamespace` method which takes the name of a namespace and a block. Each route specified using one of the sinatra-rroute mapping functions (`gget`/`ppost`/`ddelete`/, also `mmap`) inside the block will be prefixed by the specified namespace prefix. Sinatra's built-in `get`/`post`/`delete`/... functions can be used within a namespace block, but are *not* affected by the namespacing. Namespaces can be nested. *Prefixes do have to specify leading and/or trailing slashes explicitely!*
